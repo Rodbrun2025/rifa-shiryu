@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Rifa Shiryu - Controle de Números</title>
+  <title>Rifa Shiryu - Números</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -48,6 +48,7 @@
       gap: 20px;
       margin-bottom: 20px;
       flex-wrap: wrap;
+      align-items: center;
     }
 
     button {
@@ -60,9 +61,14 @@
       font-weight: bold;
     }
 
+    .stats-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     .stats {
       font-size: 16px;
-      margin-top: 5px;
       color: #007bff;
     }
 
@@ -86,7 +92,7 @@
     .disponivel {
       background-color: #28a745;
       color: #fff;
-      position: relative;
+      cursor: pointer;
     }
 
     .indisponivel {
@@ -94,16 +100,19 @@
       color: #fff;
     }
 
-    .whatsapp-button {
-      margin-top: 8px;
-      display: inline-block;
-      padding: 6px 10px;
-      font-size: 12px;
+    .selecionado {
+      background-color: #ffc107 !important;
+      color: #000 !important;
+    }
+
+    #botaoWhats {
+      font-size: 14px;
       background-color: #25D366;
-      color: white;
+      padding: 8px 12px;
       border-radius: 6px;
+      color: white;
       text-decoration: none;
-      font-weight: normal;
+      display: none;
     }
 
     footer {
@@ -123,8 +132,12 @@
   <div class="controls">
     <button onclick="mostrarTodos()">Mostrar Todos</button>
     <button onclick="mostrarDisponiveis()">Somente Disponíveis</button>
-    <div class="stats">
-      Disponíveis: <span id="contagemDisponiveis">0</span>
+    <div class="stats-container">
+      <div class="stats">
+        Disponíveis: <span id="contagemDisponiveis">0</span> |
+        Selecionados: <span id="contagemSelecionados">0</span>
+      </div>
+      <a id="botaoWhats" href="#" target="_blank">CLIQUE AQUI E COMRPE AGORA SEUS NÚMEROS!</a>
     </div>
   </div>
 
@@ -138,9 +151,10 @@
     const API_KEY = 'AIzaSyAjWOqPZT7dpf3nAWbPLP6HaIJSjvXLt8g';
     const SPREADSHEET_ID = '1HB5geWWusRVIwYN8R0a15UIYzioShGdYuV-hJunSHXc';
     const RANGE = 'RIFA SHIRYU!A2:B';
-    const TELEFONE_WHATSAPP = '554174001098'; // Altere para seu número no formato internacional
+    const TELEFONE_WHATSAPP = '554174001098';
 
     let dadosOriginais = [];
+    let selecionados = [];
 
     fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(RANGE)}?key=${API_KEY}`)
       .then(res => res.json())
@@ -162,6 +176,8 @@
     function renderizarNumeros(dados, apenasDisponiveis = false) {
       const container = document.getElementById('numeros');
       container.innerHTML = '';
+      selecionados = [];
+      atualizarSelecao();
 
       let total = dados.length;
       let disponiveis = 0;
@@ -175,15 +191,19 @@
 
         const div = document.createElement('div');
         div.className = 'number ' + (estaDisponivel ? 'disponivel' : 'indisponivel');
-        div.innerHTML = `<div>${numero}</div>`;
+        div.textContent = numero;
 
         if (estaDisponivel) {
-          const link = document.createElement('a');
-          link.href = `https://wa.me/${TELEFONE_WHATSAPP}?text=Olá!%20Gostaria%20de%20reservar%20o%20número%20${numero}%20da%20Rifa%20Shiryu.`;
-          link.target = "_blank";
-          link.className = 'whatsapp-button';
-          link.textContent = 'Reservar';
-          div.appendChild(link);
+          div.addEventListener('click', () => {
+            if (div.classList.contains('selecionado')) {
+              div.classList.remove('selecionado');
+              selecionados = selecionados.filter(n => n !== numero);
+            } else {
+              div.classList.add('selecionado');
+              selecionados.push(numero);
+            }
+            atualizarSelecao();
+          });
           disponiveis++;
         }
 
@@ -197,6 +217,19 @@
       const progressBar = document.getElementById('progressBar');
       progressBar.style.width = porcentagem + '%';
       progressBar.textContent = `${porcentagem}% vendidos`;
+    }
+
+    function atualizarSelecao() {
+      document.getElementById('contagemSelecionados').textContent = selecionados.length;
+      const botao = document.getElementById('botaoWhats');
+      if (selecionados.length > 0) {
+        const lista = selecionados.sort((a, b) => a - b).join(', ');
+        const mensagem = `Olá! Gostaria de reservar os seguintes números da Rifa Shiryu: ${lista}`;
+        botao.href = `https://wa.me/${TELEFONE_WHATSAPP}?text=${encodeURIComponent(mensagem)}`;
+        botao.style.display = 'inline-block';
+      } else {
+        botao.style.display = 'none';
+      }
     }
 
     function mostrarDisponiveis() {
